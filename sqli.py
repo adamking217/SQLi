@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import urllib2
 import urlparse
 import time
@@ -16,6 +17,7 @@ inputURL = args.url
 
 resultUrl = {inputURL:False}
 uniqurl = {}
+totalVulns = {'UNION':0};
 
 def processOneUrl(url):
     """fetch URL content and update resultUrl."""
@@ -96,8 +98,15 @@ def checkMysqlUnion(url, start, finish):
         if uniqid in content:
             showurl = unionurl.replace(uniqid, "")
             print colored("[+] MySQL Union Injection Found ({0} column) - {1}".format(x, showurl), "green")
+            totalVulns['UNION'] += 1
             return x
     return "false"
+
+def summary():
+    end_time = round(time.time() - start_time, 2)
+    for sqltype, total in iter(totalVulns.iteritems()):
+        print colored("[*] Completed: Total of {1} {0} vulnerabilities found in : {2} seconds".format(sqltype, total, end_time), "green")
+
 
 def main():
     banner()
@@ -145,5 +154,7 @@ def main():
                     stopTesting = "true"
         else:
             break
+    summary()
 
+start_time = time.time()
 main()
