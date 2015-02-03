@@ -3,13 +3,16 @@ import urlparse
 import time
 import pprint
 import string
-
+import argparse
 import sys
 from termcolor import colored, cprint
 
 import BeautifulSoup
 
-inputURL = "http://192.168.2.18"
+parser = argparse.ArgumentParser(prog='./sqli.py', usage='%(prog)s [-u URL]')
+parser.add_argument('-u', '--url', dest='url', nargs='?', default="empty", help='Website domain for scanning (e.g. http://example.com)')
+args = parser.parse_args()
+inputURL = args.url
 
 resultUrl = {inputURL:False}
 uniqurl = {}
@@ -57,11 +60,15 @@ def moreToCrawl():
     return False
 
 def banner():
-    banner =  "+----------------------------------------------------------+\n"
-    banner += "|                       SQLi Scanner                       |\n"
-    banner += "|                       by Adam King                       |\n"
-    banner += "+----------------------------------------------------------+"
+    banner =  "+-----------------------------------------------------------+\n"
+    banner += "|                     SQLi Scanner v0.1                     |\n"
+    banner += "|                       by Adam King                        |\n"
+    banner += "+-----------------------------------------------------------+"
     print format(banner)
+    if inputURL == 'empty':
+        parser.print_help()
+        exit(0)
+        
 
 def checkMysqlError(url):
     #print colored("[*] MySQL {0}".format(url), "cyan")
@@ -90,7 +97,6 @@ def checkMysqlUnion(url, start, finish):
             showurl = unionurl.replace(uniqid, "")
             print colored("[+] MySQL Union Injection Found ({0} column) - {1}".format(x, showurl), "green")
             return x
-
     return "false"
 
 def main():
@@ -102,7 +108,9 @@ def main():
             break
         processOneUrl(toCrawl)
         #time.sleep(1)
-
+    if len(uniqurl) == 0:
+        print colored("[-] Unable to identify any URLs or inputs".format(inputURL), "red")
+        exit(0)
     print "[*] Testing {0} unique URLS and inputs".format(len(uniqurl))
     # Check for any MySQL based errors
     stopTesting = "false"
@@ -110,14 +118,11 @@ def main():
     for url, getvars in iter(uniqurl.iteritems()):
         sqlconfirm = "false"
         if stopTesting <> "true": 
-
             # Test for any MySQL Errors
             print colored("[+] Error Based Tests: '{0}'".format(url), "cyan")
             testurl = checkMysqlError(url)
             if testurl == "true":
                 print colored("[+] [{0}] - MySQL Error(s) Found", "green")
-                
-
             # Test for union based injection
             start = 1
             finish = 10
@@ -132,7 +137,6 @@ def main():
                 testurl = checkMysqlUnion(url, start, finish)
                 if testurl <> "false":
                     sqlconfirm = "true"
-
             # if sqli is confirmed, prompt to exit
             if sqlconfirm == "true":
                 print colored("[+] Appears the website maybe vulenrable to SQL injection on {0}".format(url), "green")
