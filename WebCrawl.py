@@ -66,7 +66,7 @@ class WebCrawl:
                 self.uniqUrl[postvars] = "POST"
 
             self.resultUrl[url] = True
-        except:
+        except Exception:
             self.resultUrl[url] = True
 
     def moreToCrawl(self):

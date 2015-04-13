@@ -28,8 +28,8 @@ inputLVL = args.level
 inputAnswers = args.defaults
 
 URLCrawl    = True
-MySQLChecks = False
-DataDump    = False
+MySQLChecks = True
+DataDump    = True
 
 mysvulns = {}
 
@@ -50,7 +50,6 @@ def banner():
 
 def main():
     banner()
-
     p = subprocess.Popen("git status", stdout=subprocess.PIPE, shell=True)
     (output, err) = p.communicate()
     p_status = p.wait()
@@ -74,7 +73,6 @@ def main():
     if DataDump:
         print colored("[*] [{0}] Data Dump Started".format(func.showTime()), "green")
         dbdump.start(mysqlvulns)
-        #dbdump.display()
         print colored("[*] [{0}] Data Dump Finished".format(func.showTime()), "green")
     summary()
 
