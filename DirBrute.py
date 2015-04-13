@@ -25,7 +25,7 @@ class DirBrute:
 			text_file = open(dirfile, "r")
 			lines = text_file.readlines()
 			text_file.close()
-			found = 0
+			founddir = 0
 			for dirname in lines:
 				dirname = dirname.replace("\r", "");
 				dirname = dirname.replace("\n", "");
@@ -33,8 +33,8 @@ class DirBrute:
 				code = self.checkURL(newurl);
 				if code:
 					print colored("[-] Dir Brute - Found :: {0}".format(newurl), "cyan")
-					found = found + 1
-			print colored("[-] Dir Brute - Found {0} Dir(s)".format(found), "cyan")
+					founddir = founddir + 1
+			print colored("[-] Dir Brute - Found {0} Dir(s)".format(founddir), "cyan")
 		except Exception:
 			print colored("[*] [{0}] Error opening file - {1}".format(func.showTime(), dirfile), "red")
 

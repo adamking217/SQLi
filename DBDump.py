@@ -19,12 +19,15 @@ class DBDump:
 		self.start_tag 	= "<tag>"
 		self.finish_tag	= "<\/tag>"
 		self.col_length = 20
-		self.db_file = "sqli.db"
+		self.db_file = ""
 		self.dbname = ""
 		self.varsql = ""
-		self.conn = self.createDB(self.db_file)
+		self.conn = ""
 
-	def start(self, mysqlvulns):
+	def start(self, mysqlvulns, target):
+		parsed_uri = urlparse.urlparse(target)
+		self.db_file = parsed_uri.netloc + "-dump.db"
+		self.conn = self.createDB(self.db_file)
 		for sqlurl, sqlnum in iter(mysqlvulns.iteritems()):
 			self.varsql = self.testVar(sqlurl, sqlnum)
 			self.dbname = self.getDBName()

@@ -110,7 +110,7 @@ class MySQLTests:
 			nullvars = ""
 			uniqid = "726486"
 			testUrl = url.replace("[XX]", "1%20union%20select%20[VARS]");
-			for x in range(self.unionstart, self.unionfinish):
+			for x in range(1, self.unionfinish):
 				if len(unionvars) > 0:
 					unionvars += ","
 					nullvars += ","
