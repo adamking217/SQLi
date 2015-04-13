@@ -3,7 +3,7 @@ import sqlite3
 import urllib2
 import urlparse
 import time
-import BeautifulSoup 
+import BeautifulSoup
 
 from termcolor import colored, cprint
 
@@ -158,6 +158,7 @@ class DBDump:
 
 	def dumpData(self, varsql, dbname, tbl_overview):
 		cursor = self.conn.cursor()
+		size_alert = False
 		for tblname, strcolnames in iter(tbl_overview.iteritems()):
 			print colored("[+] [{1}] Dumping Table: {0}".format(tblname, func.showTime()), "cyan")
 			columns = strcolnames.split("||")
@@ -180,6 +181,7 @@ class DBDump:
 					if "" + self.start_tag + "" in item: 
 						retval = item [ item.find("" + self.start_tag + "")+len("" + self.start_tag + "") : ]
 						items = retval.split("|")
+						db_size = os.stat(self.db_file).st_size 
 						addstartsql = "INSERT INTO " + tblname + " VALUES ("
 						addsql = addstartsql
 						for data in items:
@@ -189,4 +191,9 @@ class DBDump:
 						addsql += ");"
 						#print addsql
 						cursor.execute(addsql)
+
+						# 2GB = 2000000000
+						if db_size > 2000000000 and size_alert == False:
+							print colored("[+] [{1}] WARNING: Local database file is over 2GB", "red")
+							size_alert = True
 		self.conn.commit()

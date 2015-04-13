@@ -1,7 +1,9 @@
 import urllib2
 import urlparse
 import time
-import BeautifulSoup 
+import BeautifulSoup
+
+#from BeautifulSoup import *
 
 from termcolor import colored, cprint
 
@@ -35,11 +37,34 @@ class WebCrawl:
         try:
             html_page = urllib2.urlopen(url)
             soup = BeautifulSoup.BeautifulSoup(html_page)
+
+            # GET
             for link in soup.findAll('a',href=True):
                 fullurl = urlparse.urljoin(url, link.get('href'))
                 if fullurl.startswith(url):
                     if (fullurl not in self.resultUrl):
                         self.resultUrl[fullurl] = False
+
+            # POST
+            html_source = urllib2.urlopen(url).read()
+            if "<form" in html_source.lower():
+                txtform = ["text", "password"]
+                txtinput = soup.findAll('input', {'type':txtform})
+                action = soup.find('form').get('action')
+                spliturl = url.split("?")
+
+                testexp = spliturl[0].split("/")
+                newurl = ""
+                urlstop = len(testexp) - 1
+                for x in range(0, urlstop):
+                    newurl += testexp[x] + "/"
+
+                postvars = newurl + action + "|"
+                for elem in txtinput:
+                    postvars += elem['name'] + "=[XX],"
+                postvars = postvars[:-1]
+                self.uniqUrl[postvars] = "POST"
+
             self.resultUrl[url] = True
         except:
             self.resultUrl[url] = True

@@ -1,10 +1,13 @@
 #!/usr/bin/python
 import time
 import argparse
+import subprocess
+
 from DBDump import *
 from WebCrawl import *
 from MySQLTests import *
 from functions import *
+from BeautifulSoup import *
 
 from termcolor import colored, cprint
 
@@ -16,9 +19,11 @@ func = functions()
 parser = argparse.ArgumentParser(prog='./sqli.py', usage='%(prog)s [-u URL]')
 parser.add_argument('-u', '--url', dest='url', nargs='?', default="empty", help='Website domain for scanning (e.g. http://example.com)')
 parser.add_argument('-l', '--level', dest='level', nargs='?', default="1", help='Scanning Level')
+parser.add_argument('-d', '--defaults', dest='defaults', nargs='?', default="1", help='Prompt for answers (1 = Yes, 0 = No)')
 args = parser.parse_args()
 inputURL = args.url
 inputLVL = args.level
+inputAnswers = args.defaults
 
 URLCrawl    = True
 MySQLChecks = True
@@ -43,13 +48,21 @@ def banner():
 
 def main():
     banner()
+
+    p = subprocess.Popen("git status", stdout=subprocess.PIPE, shell=True)
+    (output, err) = p.communicate()
+    p_status = p.wait()
+    if "Your branch is up-to-date" not in output:
+        print colored("[-] Please update your version by running 'git update'", "red")
+        exit(0)
     if URLCrawl:
         print colored("[*] [{0}] Web Crawl Started".format(func.showTime()), "green")
         weburls = webcrawl.crawl(inputURL)
+        #print "[-] URL: {0}".format(weburls)
         print colored("[*] [{0}] Web Crawl Finished".format(func.showTime()), "green")
     if MySQLChecks:
         print colored("[*] [{0}] MySQL Tests Started".format(func.showTime()), "green")
-        mysqlvulns =  mysql.start(inputLVL, weburls)
+        mysqlvulns =  mysql.start(inputLVL, weburls, inputAnswers)
         print colored("[*] [{0}] MySQL Tests Finished".format(func.showTime()), "green")
     if DataDump:
         print colored("[*] [{0}] Data Dump Started".format(func.showTime()), "green")
