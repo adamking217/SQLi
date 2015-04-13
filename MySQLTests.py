@@ -47,7 +47,7 @@ class MySQLTests:
 			if "You have an error in your SQL syntax" in content:
 				errorfound = True
 		if errorfound:
-			print colored("[+] [{1}] MySQL POST Error Found - {0}".format(url, func.showTime()), "white", "on_blue")
+			print colored("[+] [{1}] MySQL POST Error Found - {0}".format(posturl, func.showTime()), "white", "on_blue")
 			return True
 		else:
 			return False

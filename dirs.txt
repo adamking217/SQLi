@@ -1,0 +1,5 @@
+/admin
+/admin/includes
+/backup
+/test
+/dev

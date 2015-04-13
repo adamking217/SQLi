@@ -6,12 +6,14 @@ import subprocess
 from DBDump import *
 from WebCrawl import *
 from MySQLTests import *
+from DirBrute import *
 from functions import *
 from BeautifulSoup import *
 
 from termcolor import colored, cprint
 
 dbdump = DBDump()
+dirbrute = DirBrute()
 webcrawl = WebCrawl()
 mysql = MySQLTests()
 func = functions()
@@ -26,8 +28,8 @@ inputLVL = args.level
 inputAnswers = args.defaults
 
 URLCrawl    = True
-MySQLChecks = True
-DataDump    = True
+MySQLChecks = False
+DataDump    = False
 
 mysvulns = {}
 
@@ -55,10 +57,15 @@ def main():
     if "Your branch is up-to-date" not in output:
         print colored("[-] Please update your version by running 'git update'", "red")
         exit(0)
+    print colored("[*] [{0}] Level :: {1}".format(func.showTime(), inputLVL), "green")
+    if inputLVL >= "2":
+        print colored("[*] [{0}] Dir Brute Started".format(func.showTime()), "green")
+        dirs = dirbrute.start(inputURL, "dirs.txt")
+        print colored("[*] [{0}] Dir Brute Finished".format(func.showTime()), "green")
     if URLCrawl:
         print colored("[*] [{0}] Web Crawl Started".format(func.showTime()), "green")
         weburls = webcrawl.crawl(inputURL)
-        #print "[-] URL: {0}".format(weburls)
+        print colored("[*] [{0}] Web Crawl: Found {1} scripts".format(func.showTime(), len(weburls)), "cyan")
         print colored("[*] [{0}] Web Crawl Finished".format(func.showTime()), "green")
     if MySQLChecks:
         print colored("[*] [{0}] MySQL Tests Started".format(func.showTime()), "green")
